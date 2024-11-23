@@ -16,12 +16,12 @@ export default async function handler(request) {
       });
     }
 
-    // 获取请求路径
+    // 获取请求类型
     const url = new URL(request.url);
-    const path = url.pathname;
+    const type = url.searchParams.get('type');
 
-    // 处理不同的路由
-    if (path.endsWith('/download')) {
+    // 处理不同的测试类型
+    if (type === 'download') {
       // 下载测试 - 生成随机数据
       const size = Math.min(
         parseInt(url.searchParams.get('size')) || 1024 * 1024,
@@ -53,7 +53,7 @@ export default async function handler(request) {
           'Cache-Control': 'no-store',
         },
       });
-    } else if (path.endsWith('/upload')) {
+    } else if (type === 'upload') {
       if (request.method !== 'POST') {
         return new Response('Method not allowed', { status: 405 });
       }
@@ -68,7 +68,14 @@ export default async function handler(request) {
       });
     }
 
-    return new Response('Invalid endpoint', { status: 404 });
+    return new Response('Invalid test type', { 
+      status: 400,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'text/plain',
+      }
+    });
+
   } catch (error) {
     console.error('Error:', error);
     return new Response('Internal Server Error: ' + error.message, { 
