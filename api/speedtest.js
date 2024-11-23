@@ -10,7 +10,7 @@ export default async function handler(request) {
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Headers': '*',
           'Access-Control-Max-Age': '86400',
         },
       });
@@ -53,19 +53,10 @@ export default async function handler(request) {
           'Cache-Control': 'no-store',
         },
       });
-    } else if (type === 'upload') {
-      if (request.method !== 'POST') {
-        return new Response('Method not allowed', { status: 405 });
-      }
-
-      // 读取请求体的数据流
-      let size = 0;
-      const reader = request.body.getReader();
-      while (true) {
-        const {done, value} = await reader.read();
-        if (done) break;
-        size += value.length;
-      }
+    } else if (type === 'upload' && request.method === 'POST') {
+      // 直接获取请求体的 ArrayBuffer
+      const arrayBuffer = await request.arrayBuffer();
+      const size = arrayBuffer.byteLength;
 
       return new Response(JSON.stringify({ size }), {
         headers: {
@@ -73,16 +64,17 @@ export default async function handler(request) {
           'Access-Control-Allow-Origin': '*',
           'Cache-Control': 'no-store',
           'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Headers': '*',
         },
       });
     }
 
-    return new Response('Invalid test type', { 
+    return new Response('Invalid request', { 
       status: 400,
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'text/plain',
+        'Access-Control-Allow-Headers': '*',
       }
     });
 
@@ -93,6 +85,7 @@ export default async function handler(request) {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'text/plain',
+        'Access-Control-Allow-Headers': '*',
       }
     });
   }
