@@ -55,7 +55,23 @@ export default async function handler(request) {
       });
     } else if (type === 'upload' && request.method === 'POST') {
       try {
+        const contentLength = request.headers.get('content-length');
+        if (!contentLength) {
+          throw new Error('Missing Content-Length header');
+        }
+
+        const size = parseInt(contentLength);
+        if (isNaN(size)) {
+          throw new Error('Invalid Content-Length header');
+        }
+
+        // 读取整个请求体
         const arrayBuffer = await request.arrayBuffer();
+        
+        if (arrayBuffer.byteLength !== size) {
+          throw new Error('Size mismatch');
+        }
+
         return new Response(JSON.stringify({ 
           size: arrayBuffer.byteLength,
           status: 'success' 
@@ -65,10 +81,11 @@ export default async function handler(request) {
             'Access-Control-Allow-Origin': '*',
             'Cache-Control': 'no-store',
             'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': '*',
+            'Access-Control-Allow-Headers': 'Content-Type',
           },
         });
       } catch (error) {
+        console.error('Upload error:', error);
         return new Response(JSON.stringify({ 
           error: error.message,
           status: 'error' 
@@ -77,7 +94,7 @@ export default async function handler(request) {
           headers: {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Headers': '*',
+            'Access-Control-Allow-Headers': 'Content-Type',
           },
         });
       }
