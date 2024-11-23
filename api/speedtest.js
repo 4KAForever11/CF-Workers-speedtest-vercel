@@ -28,21 +28,16 @@ export default async function handler(request) {
         10 * 1024 * 1024  // 最大10MB
       );
       
-      // 分块生成数据
-      const chunkSize = 65536; // 64KB
-      const chunks = [];
-      for (let i = 0; i < size; i += chunkSize) {
-        const chunk = new Uint8Array(Math.min(chunkSize, size - i));
-        crypto.getRandomValues(chunk);
-        chunks.push(chunk);
-      }
-      
-      // 合并所有数据块
+      // 使用更小的块大小
+      const chunkSize = 32768; // 32KB
       const data = new Uint8Array(size);
-      let offset = 0;
-      for (const chunk of chunks) {
+      
+      // 分块生成随机数据
+      for (let offset = 0; offset < size; offset += chunkSize) {
+        const length = Math.min(chunkSize, size - offset);
+        const chunk = new Uint8Array(length);
+        crypto.getRandomValues(chunk);
         data.set(chunk, offset);
-        offset += chunk.length;
       }
       
       return new Response(data.buffer, {
