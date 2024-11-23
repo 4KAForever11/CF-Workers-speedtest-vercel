@@ -57,13 +57,23 @@ export default async function handler(request) {
       if (request.method !== 'POST') {
         return new Response('Method not allowed', { status: 405 });
       }
-      // 上传测试 - 仅返回接收到的数据大小
-      const blob = await request.blob();
-      return new Response(JSON.stringify({ size: blob.size }), {
+
+      // 读取请求体的数据流
+      let size = 0;
+      const reader = request.body.getReader();
+      while (true) {
+        const {done, value} = await reader.read();
+        if (done) break;
+        size += value.length;
+      }
+
+      return new Response(JSON.stringify({ size }), {
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
           'Cache-Control': 'no-store',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
         },
       });
     }
