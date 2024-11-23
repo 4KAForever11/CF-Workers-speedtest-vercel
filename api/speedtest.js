@@ -54,19 +54,33 @@ export default async function handler(request) {
         },
       });
     } else if (type === 'upload' && request.method === 'POST') {
-      // 直接获取请求体的 ArrayBuffer
-      const arrayBuffer = await request.arrayBuffer();
-      const size = arrayBuffer.byteLength;
-
-      return new Response(JSON.stringify({ size }), {
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Cache-Control': 'no-store',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': '*',
-        },
-      });
+      try {
+        const arrayBuffer = await request.arrayBuffer();
+        return new Response(JSON.stringify({ 
+          size: arrayBuffer.byteLength,
+          status: 'success' 
+        }), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'no-store',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': '*',
+          },
+        });
+      } catch (error) {
+        return new Response(JSON.stringify({ 
+          error: error.message,
+          status: 'error' 
+        }), {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+          },
+        });
+      }
     }
 
     return new Response('Invalid request', { 

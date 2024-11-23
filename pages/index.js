@@ -381,15 +381,13 @@ function getJavaScript() {
                 return (receivedLength * 8 / duration / 1024 / 1024);
             });
             
-            // 上传测试
+            // 修改上传测试部分
             await runSpeedTest('upload', async () => {
                 const size = 5 * 1024 * 1024;
                 const data = new Uint8Array(size);
                 const chunkSize = 65536;
-                let uploadedSize = 0;
-                let lastUpdate = performance.now();
-                let speeds = [];
                 
+                // 准备上传数据
                 for (let i = 0; i < size; i += chunkSize) {
                     const chunk = new Uint8Array(Math.min(chunkSize, size - i));
                     crypto.getRandomValues(chunk);
@@ -399,39 +397,36 @@ function getJavaScript() {
                 const startTime = performance.now();
                 
                 return new Promise((resolve, reject) => {
+                    const formData = new FormData();
+                    const blob = new Blob([data], { type: 'application/octet-stream' });
+                    formData.append('file', blob);
+
                     const xhr = new XMLHttpRequest();
                     xhr.open('POST', '/api/speedtest?type=upload');
                     
                     xhr.upload.onprogress = (event) => {
-                        const now = performance.now();
-                        if (now - lastUpdate > 100) {
-                            const duration = (now - lastUpdate) / 1000;
-                            const currentSpeed = ((event.loaded - uploadedSize) * 8 / duration / 1024 / 1024);
-                            
-                            speeds.push(currentSpeed);
-                            if (speeds.length > 3) speeds.shift();
-                            const avgSpeed = speeds.reduce((a, b) => a + b, 0) / speeds.length;
-                            
+                        if (event.lengthComputable) {
+                            const now = performance.now();
+                            const duration = (now - startTime) / 1000;
+                            const currentSpeed = (event.loaded * 8 / duration / 1024 / 1024);
                             const progress_percent = (event.loaded / event.total) * 100;
                             
-                            updateUI(avgSpeed, progress_percent, '上传');
-                            
-                            lastUpdate = now;
-                            uploadedSize = event.loaded;
+                            updateUI(currentSpeed, progress_percent, '上传');
                         }
                     };
                     
                     xhr.onload = () => {
                         if (xhr.status === 200) {
                             const duration = (performance.now() - startTime) / 1000;
-                            resolve(size * 8 / duration / 1024 / 1024);
+                            const speed = size * 8 / duration / 1024 / 1024;
+                            resolve(speed);
                         } else {
                             reject(new Error('上传失败: ' + xhr.status));
                         }
                     };
                     
-                    xhr.onerror = () => reject(new Error('上传失败'));
-                    xhr.send(data);
+                    xhr.onerror = () => reject(new Error('上传失败: 网络错误'));
+                    xhr.send(data); // 直接发送二进制数据
                 });
             });
             
