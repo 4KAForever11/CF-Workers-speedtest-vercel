@@ -29,14 +29,14 @@ export default async function handler(request) {
       );
       
       // 使用更小的块大小
-      const chunkSize = 32768; // 32KB
+      const chunkSize = 16384; // 16KB
       const data = new Uint8Array(size);
       
-      // 分块生成随机数据
+      // 使用简单的数据填充而不是随机数据
       for (let offset = 0; offset < size; offset += chunkSize) {
         const length = Math.min(chunkSize, size - offset);
         const chunk = new Uint8Array(length);
-        crypto.getRandomValues(chunk);
+        chunk.fill(65); // ASCII 'A'
         data.set(chunk, offset);
       }
       

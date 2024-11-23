@@ -383,36 +383,47 @@ function getJavaScript() {
             
             // 修改上传测试部分
             await runSpeedTest('upload', async () => {
-                const size = 5 * 1024 * 1024;
-                const data = new Uint8Array(size);
-                crypto.getRandomValues(data); // 一次性生成所有数据
-                
-                const startTime = performance.now();
+                const totalSize = 5 * 1024 * 1024; // 总大小 5MB
+                const chunkSize = 32768; // 32KB 块大小
                 let uploadedSize = 0;
-                let lastUpdate = startTime;
-                let speeds = [];
+                const startTime = performance.now();
                 
-                try {
-                    const response = await fetch('/api/speedtest?type=upload', {
-                        method: 'POST',
-                        body: data,
-                        headers: {
-                            'Content-Type': 'application/octet-stream'
+                // 分块上传
+                while (uploadedSize < totalSize) {
+                    const size = Math.min(chunkSize, totalSize - uploadedSize);
+                    const chunk = new Uint8Array(size);
+                    // 使用简单的数据填充而不是随机数据
+                    chunk.fill(65); // ASCII 'A'
+                    
+                    try {
+                        const response = await fetch('/api/speedtest?type=upload', {
+                            method: 'POST',
+                            body: chunk,
+                            headers: {
+                                'Content-Type': 'application/octet-stream'
+                            }
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('上传失败: ' + response.status);
                         }
-                    });
 
-                    if (!response.ok) {
-                        throw new Error('上传失败: ' + response.status);
+                        uploadedSize += size;
+                        const now = performance.now();
+                        const duration = (now - startTime) / 1000;
+                        const currentSpeed = (uploadedSize * 8 / duration / 1024 / 1024);
+                        const progress = (uploadedSize / totalSize) * 100;
+                        
+                        updateUI(currentSpeed, progress, '上传');
+
+                    } catch (error) {
+                        console.error('Chunk upload error:', error);
+                        throw new Error('上传失败: ' + error.message);
                     }
-
-                    const duration = (performance.now() - startTime) / 1000;
-                    const speed = size * 8 / duration / 1024 / 1024;
-                    return speed;
-
-                } catch (error) {
-                    console.error('Upload error:', error);
-                    throw new Error('上传失败: ' + error.message);
                 }
+
+                const duration = (performance.now() - startTime) / 1000;
+                return totalSize * 8 / duration / 1024 / 1024;
             });
             
             currentSpeed.textContent = '再次测速';
